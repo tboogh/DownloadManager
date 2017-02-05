@@ -40,9 +40,9 @@ namespace Atomic.Core.Http
                 {
                     using (var stream = await response.Content.ReadAsStreamAsync())
                     {
-                        var totalRead = 0L;
-                        var buffer = new byte[4096];
-                        var isMoreToRead = true;
+                        long totalRead = 0L;
+                        byte[] buffer = new byte[4096];
+                        bool isMoreToRead = true;
 
                         do
                         {
@@ -64,7 +64,8 @@ namespace Atomic.Core.Http
 
                                 if (canReportProgress)
                                 {
-                                    observer.OnNext(totalRead / total * 100);
+                                    double value = (totalRead / (double)total) * 100;
+                                    observer.OnNext(value);
                                 }
                             }
                         }

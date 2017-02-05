@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Atomic.Core.Http;
 using Atomic.Core.Managers;
+using Atomic.Core.Model;
 using Atomic.Core.Storage;
 
 namespace Atomic.IntegrationTests.Console
@@ -37,18 +38,22 @@ namespace Atomic.IntegrationTests.Console
             IStorage storage = new LocalStorage();
             IHttpService httpService = new HttpService(storage);
             var downloadManager = new DownloadManager(httpService);
-            
+
             ((INotifyCollectionChanged) downloadManager.Downloads).CollectionChanged += (sender, eventArgs) =>
             {
                 int count = downloadManager.Downloads.Count;
                 System.Console.WriteLine($"Downloads: {count}");
-                
             };
-            
+
             for (int i = 0; i < 100; ++i)
             {
-                var fileUrl = $"http://localhost:59901/api/values?size={(1024 * 1024 * 8)+i}";
-                downloadManager.DownloadFile(fileUrl);
+                var fileUrl = $"http://localhost:59901/api/values?size={(1024 * 1024 * 8) + i}";
+                IDownload download = downloadManager.DownloadFile(fileUrl);
+                var x = i;
+                if (x == 0)
+                {
+                    download.Progress.Subscribe(d => { System.Console.WriteLine($"{x} ==> {d}%"); });
+                }
             }
             System.Console.ReadKey();
         }

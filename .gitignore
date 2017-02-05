@@ -82,6 +82,7 @@ ipch/
 *.cachefile
 *.VC.db
 
+
 # Visual Studio profiler
 *.psess
 *.vsp
@@ -146,6 +147,7 @@ publish/
 #*.pubxml
 *.publishproj
 
+
 # NuGet Packages
 *.nupkg
 # The packages folder can be ignored because of Package Restore
@@ -166,9 +168,11 @@ csx/
 ecf/
 rcf/
 
+
 # Windows Store app package directory
 AppPackages/
 BundleArtifacts/
+
 
 # Visual Studio cache files
 # files ending in .cache can be ignored
@@ -178,7 +182,9 @@ BundleArtifacts/
 
 # Others
 ClientBin/
+
 [Ss]tyle[Cc]op.*
+
 ~$*
 *~
 *.dbmdl
@@ -187,6 +193,7 @@ ClientBin/
 *.publishsettings
 node_modules/
 orleans.codegen.cs
+
 
 # RIA/Silverlight projects
 Generated_Code/
@@ -231,6 +238,7 @@ FakesAssemblies/
 **/*.Server/ModelManifest.xml
 _Pvt_Extensions
 
+
 # LightSwitch generated files
 GeneratedArtifacts/
 ModelManifest.xml
@@ -240,3 +248,4 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+

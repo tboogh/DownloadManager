@@ -38,6 +38,7 @@
     <Compile Include="Http\HttpStatusCodeException.cs" />
     <Compile Include="Http\IHttpService.cs" />
     <Compile Include="Managers\IDownloadManager.cs" />
+    <Compile Include="ReadOnlyObservableCollection.cs" />
     <Compile Include="Storage\IStorage.cs" />
     <Compile Include="Model\IDownload.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -79,15 +79,20 @@ namespace Atomic.Core.UnitTests
         public void DownloadFile_DownloadRemovedOnFailure()
         {
             TestScheduler testScheduler = new TestScheduler();
-            ITestableObservable<double> testObservable = testScheduler.CreateColdObservable(new Recorded<Notification<double>>(1, Notification.CreateOnError<double>(new TestException())));
-
+            ITestableObservable<double> testObservable = testScheduler.CreateColdObservable(new Recorded<Notification<double>>(1, Notification.CreateOnError<double>(new TestException())), 
+																							new Recorded<Notification<double>>(2, Notification.CreateOnError<double>(new TestException())), 
+																							new Recorded<Notification<double>>(3, Notification.CreateOnError<double>(new TestException())));
+		
             IHttpService httpService = Substitute.For<IHttpService>();
             httpService.DownloadFileAsync(Arg.Any<string>(), Arg.Any<string>())
                 .Returns(testObservable);
 
             var downloadManager = new DownloadManager(httpService);
+			downloadManager.MaxRetryCount = 3;
             string url = "http://www.someplace.com/file.bin";
             var download = downloadManager.DownloadFile(url);
+            testScheduler.AdvanceBy(1);
+            testScheduler.AdvanceBy(1);
             testScheduler.AdvanceBy(1);
 
             var queueDownload = downloadManager.Downloads.FirstOrDefault();
@@ -121,8 +126,8 @@ namespace Atomic.Core.UnitTests
         public void DownloadFile_ContinuesQueueDownloadCompletion()
         {
             TestScheduler testScheduler = new TestScheduler();
-            ITestableObservable<double> testObservable = testScheduler.CreateColdObservable(new Recorded<Notification<double>>(1, Notification.CreateOnError<double>(new TestException())));
-            ITestableObservable<double> testObservable2 = testScheduler.CreateColdObservable(new Recorded<Notification<double>>(1, Notification.CreateOnError<double>(new TestException())));
+			ITestableObservable<double> testObservable = testScheduler.CreateColdObservable(new Recorded<Notification<double>>(1, Notification.CreateOnCompleted<double>()));
+            ITestableObservable<double> testObservable2 = testScheduler.CreateColdObservable(new Recorded<Notification<double>>(1, Notification.CreateOnCompleted<double>()));
             IHttpService httpService = Substitute.For<IHttpService>();
 
             var downloadManager = new DownloadManager(httpService);
@@ -156,7 +161,8 @@ namespace Atomic.Core.UnitTests
                 new Recorded<Notification<double>>(3, Notification.CreateOnNext(0.3)),
             new Recorded<Notification<double>>(4, Notification.CreateOnNext(0.4)),
             new Recorded<Notification<double>>(5, Notification.CreateOnNext(0.5)));
-            IHttpService httpService = Substitute.For<IHttpService>();
+            
+			IHttpService httpService = Substitute.For<IHttpService>();
             httpService.DownloadFileAsync(Arg.Any<string>(), Arg.Any<string>())
                 .Returns(testObservable);
 
@@ -182,5 +188,62 @@ namespace Atomic.Core.UnitTests
             var result = await taskCompletionSource.Task;
             Assert.AreEqual(6, results.Count);
         }
+        
+        [Test]
+        public void CancelDownload_WithUrl_RemovesDownload(){
+        	IHttpService httpService = Substitute.For<IHttpService>();
+            httpService.DownloadFileAsync(Arg.Any<string>(), Arg.Any<string>())
+                .Returns(Observable.Never(0.5));
+
+            var downloadManager = new DownloadManager(httpService);
+
+            string url = $"http://www.someplace.com/file.bin";
+            var download = downloadManager.DownloadFile(url);
+
+			downloadManager.CancelDownload(url);
+			
+			var removedDownload = downloadManager.Downloads.FirstOrDefault(x => x.Url == url);
+
+			Assert.Null(removedDownload);
+		}
+		
+		[Test]
+        public void CancelDownload_WithDownloadObject_RemovesDownload(){
+        	IHttpService httpService = Substitute.For<IHttpService>();
+            httpService.DownloadFileAsync(Arg.Any<string>(), Arg.Any<string>())
+                .Returns(Observable.Never(0.5));
+
+            var downloadManager = new DownloadManager(httpService);
+	
+            string url = $"http://www.someplace.com/file.bin";
+            var download = downloadManager.DownloadFile(url);
+
+			downloadManager.CancelDownload(download);
+			
+			var removedDownload = downloadManager.Downloads.FirstOrDefault(x => x.Url == url);
+
+			Assert.Null(removedDownload);
+		}
+		
+		[Test]
+        public void CancelDownload_QeuedDownload_RemovesDownload(){
+        	IHttpService httpService = Substitute.For<IHttpService>();
+            httpService.DownloadFileAsync(Arg.Any<string>(), Arg.Any<string>())
+                .Returns(Observable.Never(0.5));
+
+            var downloadManager = new DownloadManager(httpService);
+
+			for (int i = 0; i < 5; ++i) {
+				string fileUrl = $"http://www.someplace.com/file_{i}.bin";
+				var download = downloadManager.DownloadFile(fileUrl);
+			}
+
+			var url = $"http://www.someplace.com/file_{5}.bin";
+			downloadManager.CancelDownload(url);
+			
+			var removedDownload = downloadManager.Downloads.FirstOrDefault(x => x.Url == url);
+
+			Assert.Null(removedDownload);
+		}
     }
 }

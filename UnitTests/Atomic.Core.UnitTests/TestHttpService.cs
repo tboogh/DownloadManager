@@ -31,6 +31,23 @@ namespace Atomic.Core.UnitTests
             return Task.FromResult(ResponseMessage);
         }
     }
+    
+    public class DelayHttpMessageHandler : HttpMessageHandler
+    {
+        public DelayHttpMessageHandler(HttpResponseMessage responseMessage)
+        {
+            ResponseMessage = responseMessage;
+        }
+
+        public HttpResponseMessage ResponseMessage { get; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+			await Task.Delay(TimeSpan.FromSeconds(1));
+            return ResponseMessage;
+        }
+    }
+
 
     [TestFixture]
     public class TestHttpService
@@ -159,5 +176,44 @@ namespace Atomic.Core.UnitTests
 
             Assert.AreEqual(7, count);
         }
+        
+        [Test]
+        public async Task DownloadFileAsync_Dispose_CancelsDownload(){
+			byte[] byteData = new byte[4096 * 20];
+            Random random = new Random();
+            random.NextBytes(byteData);
+
+            IStorage storage = Substitute.For<IStorage>();
+
+            MemoryStream ms = new MemoryStream();
+            storage.GetTransientOutputStream(Arg.Any<string>()).Returns(ms);
+
+            var httpResponseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(byteData, 0, byteData.Length)
+            };
+            DelayHttpMessageHandler testmessage = new DelayHttpMessageHandler(httpResponseMessage);
+            HttpClient stubHttpClient = new HttpClient(testmessage);
+            IHttpService httpService = new HttpService(storage, stubHttpClient);
+
+            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile");
+            TaskCompletionSource<bool> updateResult = new TaskCompletionSource<bool>();
+            int count = 0;
+            var disp = observable.Subscribe(d =>
+            {
+                count++;
+				if (d > 0.0)
+					updateResult.TrySetResult(true);
+            }, exception => { });
+
+            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            cancellationTokenSource.Token.Register(() =>
+            { updateResult.TrySetCanceled(); });
+
+            var result = await updateResult.Task;
+			disp.Dispose();
+			
+			Assert.AreNotEqual(22, count);
+		}
     }
 }

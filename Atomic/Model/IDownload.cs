@@ -13,7 +13,8 @@ namespace Atomic.Core.Model
         Queued,
         InProgress,
         Complete,
-        Failed
+        Failed,
+        Cancelled
     }
 
     public interface IDownload

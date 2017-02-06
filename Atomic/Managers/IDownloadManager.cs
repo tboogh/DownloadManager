@@ -16,17 +16,22 @@ namespace Atomic.Core.Managers
 {
     public interface IDownloadManager
     {
-        IDownload DownloadFile(string url);
-        ReadOnlyObservableCollection<IDownload> Downloads { get; }
+    	ReadOnlyObservableCollection<IDownload> Downloads { get; }
         int NumberOfConcurrentDownloads { get; set; }
+        int MaxRetryCount { get; set; }
+        
+        IDownload DownloadFile(string url);
+		void CancelDownload(string url);
+		void CancelDownload(IDownload download);
     }
 
     public class DownloadManager : IDownloadManager
     {
         private readonly ObservableCollection<IDownload> _downloads;
         private Task _queueTask;
+        
         public IHttpService HttpService { get; }
-        public ConcurrentDictionary<string, Tuple<IDisposable, IDownload>> DownloadDictionary { get; } = new ConcurrentDictionary<string, Tuple<IDisposable, IDownload>>();
+        public ConcurrentDictionary<string, Tuple<IDisposable, IDownload>> CurrentDownloadDictionary { get; } = new ConcurrentDictionary<string, Tuple<IDisposable, IDownload>>();
         public ConcurrentQueue<IDownload> DownloadQueue { get; } = new ConcurrentQueue<IDownload>();
         
         public DownloadManager(IHttpService httpService)
@@ -35,15 +40,17 @@ namespace Atomic.Core.Managers
             _downloads = new ObservableCollection<IDownload>();
             Downloads = new ReadOnlyObservableCollection<IDownload>(_downloads);
             NumberOfConcurrentDownloads = 4;
+			MaxRetryCount = 3;
         }
 
         public ReadOnlyObservableCollection<IDownload> Downloads { get; }
         public int NumberOfConcurrentDownloads { get; set; }
-
-        public IDownload DownloadFile(string url)
+		public int MaxRetryCount { get; set; }
+		
+		public IDownload DownloadFile(string url)
         {
             Tuple<IDisposable, IDownload> currentDownload;
-            if (DownloadDictionary.TryGetValue(url, out currentDownload))
+            if (CurrentDownloadDictionary.TryGetValue(url, out currentDownload))
             {
                 return currentDownload.Item2;
             }
@@ -75,7 +82,11 @@ namespace Atomic.Core.Managers
                 {
                     break;
                 }
-
+                
+                // If the download has been cancelled we skip it
+				if (outDownload.Status == DownloadStatus.Cancelled)
+					continue;
+				
                 var download = (Download) outDownload;
                 download.Status = DownloadStatus.InProgress;
 
@@ -88,17 +99,19 @@ namespace Atomic.Core.Managers
                     download.ProgressSubject.OnNext(d);
                 }, exception =>
                 {
-                    _downloads.Remove(download);
-                    download.Status = DownloadStatus.Failed;
                     download.ErrorCount++;
-
-                    // Download failed so we add it to queue again
-                    DownloadQueue.Enqueue(download);
+                    
+                    if (download.ErrorCount >= 3) {
+						_downloads.Remove(download);
+						download.Status = DownloadStatus.Failed;
+						download.ProgressSubject.OnError(exception);
+					} else {
+						// Download failed so we add it to queue again
+                    	DownloadQueue.Enqueue(download);
+						StartQueue();
+                    }
                     
                     taskCompletionSource.TrySetResult(true);
-
-                    // Maybe not?
-                    download.ProgressSubject.OnError(exception);
                 }, () =>
                 {
                     _downloads.Remove(download);
@@ -106,8 +119,11 @@ namespace Atomic.Core.Managers
                     taskCompletionSource.TrySetResult(true);
 
                     download.ProgressSubject.OnCompleted();
+                    
+                    StartQueue();
                 });
-                if (!DownloadDictionary.TryAdd(download.Url, new Tuple<IDisposable, IDownload>(disposable, download)))
+                
+                if (!CurrentDownloadDictionary.TryAdd(download.Url, new Tuple<IDisposable, IDownload>(disposable, download)))
                 {
                     throw new Exception("Could not add download to dictionary");
                 }
@@ -119,5 +135,22 @@ namespace Atomic.Core.Managers
             }
             while (true);
         }
-    }
+
+		public void CancelDownload(string url) {
+			Tuple<IDisposable, IDownload> currentDownload;
+			if (CurrentDownloadDictionary.TryGetValue(url, out currentDownload)) {
+				currentDownload.Item1.Dispose();
+			}
+
+			var downloads = _downloads.Where(x => x.Url == url).ToList();
+			foreach (var download in downloads) {
+				((Download)download).Status = DownloadStatus.Cancelled;
+				_downloads.Remove(download);
+			}
+		}
+		
+		public void CancelDownload(IDownload download) {
+			CancelDownload(download.Url);
+		}
+	}
 }

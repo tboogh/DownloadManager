@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="RIDER_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$/../..">
+      <sourceFolder url="file://$MODULE_DIR$/../../Atomic" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../IntegrationTests/Atomic.Core.IntegrationTests" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../IntegrationTests/Atomic.IntegrationTests.Console" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../IntegrationTests/Atomic.IntegrationTests.Server" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/csc.exe" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/Microsoft.Build.Tasks.CodeAnalysis.dll" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/Microsoft.CodeAnalysis.CSharp.dll" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/Microsoft.CodeAnalysis.dll" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/Microsoft.CodeAnalysis.VisualBasic.dll" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/Microsoft.CSharp.Core.targets" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/Microsoft.VisualBasic.Core.targets" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/System.Collections.Immutable.dll" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/System.Reflection.Metadata.dll" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/vbc.exe" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/VBCSCompiler.exe" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../packages/Microsoft.Net.Compilers.1.0.0/tools/VBCSCompiler.exe.config" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../UnitTests/Atomic.Core.UnitTests" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Atomic/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Atomic/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../IntegrationTests/Atomic.Core.IntegrationTests/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../IntegrationTests/Atomic.Core.IntegrationTests/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../IntegrationTests/Atomic.IntegrationTests.Console/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../IntegrationTests/Atomic.IntegrationTests.Console/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../IntegrationTests/Atomic.IntegrationTests.Server/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../IntegrationTests/Atomic.IntegrationTests.Server/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../UnitTests/Atomic.Core.UnitTests/bin" />
+      <excludeFolder url="file://$MODULE_DIR$/../../UnitTests/Atomic.Core.UnitTests/obj" />
+      <excludeFolder url="file://$MODULE_DIR$/../../packages" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

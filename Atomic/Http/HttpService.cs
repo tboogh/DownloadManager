@@ -22,64 +22,55 @@ namespace Atomic.Core.Http
 
         public IObservable<double> DownloadFileAsync(string url, string fileIdentifier)
         {
+			return Observable.Create<double>(async observer => {
+				CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+				cancellationTokenSource.Token.Register(() => {
+					var x = 0;
+				});
+				
+				HttpResponseMessage response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationTokenSource.Token);
 
-            return Observable.Create<double>(async observer =>
-            {
-                CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-                HttpResponseMessage response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationTokenSource.Token);
+				if (!response.IsSuccessStatusCode) {
+					observer.OnError(new HttpStatusCodeException(response.StatusCode));
+				}
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    observer.OnError(new HttpStatusCodeException(response.StatusCode));
-                }
+				var total = response.Content.Headers.ContentLength ?? -1L;
+				var canReportProgress = total != -1;
+				observer.OnNext(0.0);
+				using (var transientStream = _storage.GetTransientOutputStream(fileIdentifier)) {
+					using (var stream = await response.Content.ReadAsStreamAsync()) {
+						long totalRead = 0L;
+						byte[] buffer = new byte[4096];
+						bool isMoreToRead = true;
 
-                var total = response.Content.Headers.ContentLength ?? -1L;
-                var canReportProgress = total != -1;
-                observer.OnNext(0.0);
-                using (var transientStream = _storage.GetTransientOutputStream(fileIdentifier))
-                {
-                    using (var stream = await response.Content.ReadAsStreamAsync())
-                    {
-                        long totalRead = 0L;
-                        byte[] buffer = new byte[4096];
-                        bool isMoreToRead = true;
+						do {
+							var readCount = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationTokenSource.Token);
 
-                        do
-                        {
-                            var readCount = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationTokenSource.Token);
+							if (readCount == 0) {
+								isMoreToRead = false;
+							} else {
+								byte[] data = new byte[readCount];
+								buffer.ToList()
+									.CopyTo(0, data, 0, readCount);
 
-                            if (readCount == 0)
-                            {
-                                isMoreToRead = false;
-                            }
-                            else
-                            {
-                                byte[] data = new byte[readCount];
-                                buffer.ToList()
-                                    .CopyTo(0, data, 0, readCount);
+								transientStream.Write(data, 0, readCount);
 
-                                transientStream.Write(data, 0, readCount);
+								totalRead += readCount;
 
-                                totalRead += readCount;
-
-                                if (canReportProgress)
-                                {
-                                    double value = (totalRead / (double)total) * 100;
-                                    observer.OnNext(value);
-                                }
-                            }
-                        }
-                        while (isMoreToRead);
-                    }
-                    transientStream.Flush();
-                    observer.OnNext(1.0);
-                    observer.OnCompleted();
-                }
-                return Disposable.Create(() =>
-                {
-                    cancellationTokenSource.Cancel();
-                });
-            }).Publish().RefCount();
+								if (canReportProgress) {
+									double value = (totalRead / (double)total);
+									observer.OnNext(value);
+								}
+							}
+						}
+						while (isMoreToRead);
+					}
+					transientStream.Flush();
+					observer.OnNext(1.0);
+					observer.OnCompleted();
+				}
+			    return new CancellationDisposable(cancellationTokenSource);
+			});
         }
     }
 }

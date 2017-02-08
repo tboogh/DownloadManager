@@ -14,16 +14,18 @@ namespace Atomic.Core.Managers {
 		int NumberOfConcurrentDownloads { get; set; }
 		int MaxRetryCount { get; set; }
 
-		IDownload DownloadFile(string url);
+		IDownload DownloadFile(string url, string assetFilename  = null);
 		void CancelDownload(string url);
 		void CancelDownload(IDownload download);
 		IObservable<int> DownloadProgress { get; }
-	}
+        IObservable<IDownload> DownloadUpdated { get; }
+    }
 
 	public class DownloadManager : IDownloadManager {
 		private readonly ObservableCollection<IDownload> _downloads;
 		private readonly Subject<int> _progressSubject = new Subject<int>();
-		private Task _queueTask;
+        private readonly Subject<IDownload> _downloadUpdateSubject = new Subject<IDownload>();
+        private Task _queueTask;
 
 		public IHttpService HttpService { get; }
 		public ConcurrentDictionary<string, Tuple<IDisposable, IDownload>> CurrentDownloadDictionary { get; } = new ConcurrentDictionary<string, Tuple<IDisposable, IDownload>>();
@@ -41,19 +43,20 @@ namespace Atomic.Core.Managers {
 		public int NumberOfConcurrentDownloads { get; set; }
 		public int MaxRetryCount { get; set; }
 		public IObservable<int> DownloadProgress => _progressSubject.AsObservable();
-		
-		public IDownload DownloadFile(string url) {
+	    public IObservable<IDownload> DownloadUpdated => _downloadUpdateSubject.AsObservable();
+
+        public IDownload DownloadFile(string url, string assetFilename = null) {
 			Tuple<IDisposable, IDownload> currentDownload;
 			if (CurrentDownloadDictionary.TryGetValue(url, out currentDownload)) {
 				return currentDownload.Item2;
 			}
 
-			Guid guid = Guid.NewGuid();
-			Download download = new Download(url, guid.ToString());
+			Download download = new Download(url, assetFilename ?? Guid.NewGuid().ToString());
 			_downloads.Add(download);
+            download.Status = DownloadStatus.Queued;
 			DownloadQueue.Enqueue(download);
-
-			StartQueue();
+            _downloadUpdateSubject.OnNext(download);
+            StartQueue();
 
 			return download;
 		}
@@ -90,11 +93,15 @@ namespace Atomic.Core.Managers {
 					if (download.ErrorCount >= 3) {
 						_downloads.Remove(download);
 						download.Status = DownloadStatus.Failed;
-						download.ProgressSubject.OnError(exception);
+                        _downloadUpdateSubject.OnNext(download);
+
+                        download.ProgressSubject.OnError(exception);
 						_progressSubject.OnNext(_downloads.Count);
 					} else {
-						// Download failed so we add it to queue again
-						DownloadQueue.Enqueue(download);
+                        // Download failed so we add it to queue again
+                        download.Status = DownloadStatus.Queued;
+                        _downloadUpdateSubject.OnNext(download);
+                        DownloadQueue.Enqueue(download);
 						StartQueue();
 					}
 
@@ -102,7 +109,8 @@ namespace Atomic.Core.Managers {
 				}, () => {
 					_downloads.Remove(download);
 					download.Status = DownloadStatus.Complete;
-					taskCompletionSource.TrySetResult(true);
+                    _downloadUpdateSubject.OnNext(download);
+                    taskCompletionSource.TrySetResult(true);
 
 					download.ProgressSubject.OnCompleted();
 					_progressSubject.OnNext(_downloads.Count);

@@ -83,10 +83,9 @@ namespace Atomic.Core.Http
 						}
 					} while (isMoreToRead);
 					stream.Dispose();
-					
-					observer.OnNext(1.0);
-					observer.OnCompleted();
 				}
+				observer.OnNext(1.0);
+				observer.OnCompleted();
 			    return new CancellationDisposable(cancellationTokenSource);
 			});
         }

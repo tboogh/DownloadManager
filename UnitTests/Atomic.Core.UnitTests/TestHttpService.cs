@@ -56,9 +56,9 @@ namespace Atomic.Core.UnitTests
         public void DownloadFileAsync_ReturnsObservable()
         {
             IStorage storage = Substitute.For<IStorage>();
-            IHttpService httpService = new HttpService(storage);
-
-            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile");
+            IHttpService httpService = new HttpService();
+            MemoryStream ms = new MemoryStream();
+            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile", ms);
             Assert.NotNull(observable);
         }
 
@@ -69,9 +69,7 @@ namespace Atomic.Core.UnitTests
             Random random = new Random();
             random.NextBytes(byteData);
 
-            IStorage storage = Substitute.For<IStorage>();
             MemoryStream ms = new MemoryStream();
-            storage.GetTransientOutputStream(Arg.Any<string>()).Returns(ms);
 
             var httpResponseMessage = new HttpResponseMessage(HttpStatusCode.BadRequest)
             {
@@ -79,9 +77,9 @@ namespace Atomic.Core.UnitTests
             };
             StubHttpMessageHandler testmessage = new StubHttpMessageHandler(httpResponseMessage);
             HttpClient stubHttpClient = new HttpClient(testmessage);
-            IHttpService httpService = new HttpService(storage, stubHttpClient);
+            IHttpService httpService = new HttpService( stubHttpClient);
 
-            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile");
+            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile", ms);
             TaskCompletionSource<HttpStatusCodeException> errorResult = new TaskCompletionSource<HttpStatusCodeException>();
             
             observable.Subscribe(d =>
@@ -107,9 +105,7 @@ namespace Atomic.Core.UnitTests
             Random random = new Random();
             random.NextBytes(byteData);
 
-            IStorage storage = Substitute.For<IStorage>();
             MemoryStream ms = new MemoryStream();
-            storage.GetTransientOutputStream(Arg.Any<string>()).Returns(ms);
 
             var httpResponseMessage = new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -117,9 +113,9 @@ namespace Atomic.Core.UnitTests
             };
             StubHttpMessageHandler testmessage = new StubHttpMessageHandler(httpResponseMessage);
             HttpClient stubHttpClient = new HttpClient(testmessage);
-            IHttpService httpService = new HttpService(storage, stubHttpClient);
+            IHttpService httpService = new HttpService(stubHttpClient);
 
-            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile");
+            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile", ms);
             TaskCompletionSource<bool> updateResult = new TaskCompletionSource<bool>();
 
             observable.Subscribe(d =>
@@ -144,21 +140,18 @@ namespace Atomic.Core.UnitTests
             byte[] byteData = new byte[4096 * 5];
             Random random = new Random();
             random.NextBytes(byteData);
-
-            IStorage storage = Substitute.For<IStorage>();
-
+            
             MemoryStream ms = new MemoryStream();
-            storage.GetTransientOutputStream(Arg.Any<string>()).Returns(ms);
-
+            
             var httpResponseMessage = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new ByteArrayContent(byteData, 0, byteData.Length)
             };
             StubHttpMessageHandler testmessage = new StubHttpMessageHandler(httpResponseMessage);
             HttpClient stubHttpClient = new HttpClient(testmessage);
-            IHttpService httpService = new HttpService(storage, stubHttpClient);
+            IHttpService httpService = new HttpService(stubHttpClient);
 
-            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile");
+            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile", ms);
             TaskCompletionSource<bool> updateResult = new TaskCompletionSource<bool>();
             int count = 0;
             observable.Subscribe(d =>
@@ -183,10 +176,7 @@ namespace Atomic.Core.UnitTests
             Random random = new Random();
             random.NextBytes(byteData);
 
-            IStorage storage = Substitute.For<IStorage>();
-
             MemoryStream ms = new MemoryStream();
-            storage.GetTransientOutputStream(Arg.Any<string>()).Returns(ms);
 
             var httpResponseMessage = new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -194,9 +184,9 @@ namespace Atomic.Core.UnitTests
             };
             DelayHttpMessageHandler testmessage = new DelayHttpMessageHandler(httpResponseMessage);
             HttpClient stubHttpClient = new HttpClient(testmessage);
-            IHttpService httpService = new HttpService(storage, stubHttpClient);
+            IHttpService httpService = new HttpService(stubHttpClient);
 
-            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile");
+            var observable = httpService.DownloadFileAsync("http://testsite.com", "TestFile", ms);
             TaskCompletionSource<bool> updateResult = new TaskCompletionSource<bool>();
             int count = 0;
             var disp = observable.Subscribe(d =>

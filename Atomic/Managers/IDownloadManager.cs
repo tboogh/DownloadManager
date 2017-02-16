@@ -20,7 +20,5 @@ namespace Atomic.Core.Managers {
 		void CancelDownload(IDownload download);
 		IObservable<int> DownloadProgress { get; }
         IObservable<IDownload> DownloadUpdated { get; }
-    }
-
-	
+    }	
 }

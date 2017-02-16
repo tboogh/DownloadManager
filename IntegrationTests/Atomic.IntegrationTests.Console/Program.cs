@@ -17,7 +17,7 @@ namespace Atomic.IntegrationTests.Console
 {
     public class LocalStorage : IStorage
     {
-        public Stream GetTransientOutputStream(string fileIdentifier)
+        public Stream GetOutputStream(string fileIdentifier)
         {
             var path = "e:/Temp";
             FileStream file = File.Create(Path.Combine(path, fileIdentifier));
@@ -25,6 +25,11 @@ namespace Atomic.IntegrationTests.Console
         }
 
         public Stream GetFileStream(string fileIdentifier)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string GetDocumentsPath()
         {
             throw new NotImplementedException();
         }
@@ -36,14 +41,19 @@ namespace Atomic.IntegrationTests.Console
         {
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, errors) => true;
             IStorage storage = new LocalStorage();
-            IHttpService httpService = new HttpService(storage);
-            var downloadManager = new DownloadManager(httpService);
+            IHttpService httpService = new HttpService();
+            var downloadManager = new DownloadManager(httpService, storage);
 
-            ((INotifyCollectionChanged) downloadManager.Downloads).CollectionChanged += (sender, eventArgs) =>
+            downloadManager.DownloadUpdated.Subscribe(download =>
             {
-                int count = downloadManager.Downloads.Count;
-                System.Console.WriteLine($"Downloads: {count}");
-            };
+                if (download.Status == DownloadStatus.Complete)
+                    System.Console.WriteLine($"Completed: {download.Url}");
+            });
+
+            downloadManager.DownloadProgress.Subscribe(i =>
+            {
+                System.Console.WriteLine($"Count: {i}");
+            });
 
             for (int i = 0; i < 100; ++i)
             {

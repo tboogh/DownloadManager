@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
 
 namespace Atomic.Core.Http
 {
     public interface IHttpService
     {
-        IObservable<double> DownloadFileAsync(string url, string fileIdentifier);
+        IObservable<double> DownloadFileAsync(string url, string fileIdentifier, Stream outputStream);
     }
 }

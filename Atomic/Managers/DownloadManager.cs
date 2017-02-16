@@ -9,28 +9,27 @@ using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Atomic.Core.Http;
 using Atomic.Core.Model;
+using Atomic.Core.Storage;
 
 namespace Atomic.Core.Managers {
 
 	public class DownloadManager : IDownloadManager {
-		
-		private readonly Subject<int> _progressSubject = new Subject<int>();
+	    private readonly IStorage _storage;
+	    private readonly Subject<int> _progressSubject = new Subject<int>();
         private readonly Subject<IDownload> _downloadUpdateSubject = new Subject<IDownload>();
-        private Task _queueTask;
-
-		public IHttpService HttpService { get; }
+	    public IHttpService HttpService { get; }
 		public ConcurrentDictionary<string, Tuple<IDisposable, IDownload>> CurrentDownloadDictionary { get; } = new ConcurrentDictionary<string, Tuple<IDisposable, IDownload>>();
 		public ConcurrentQueue<IDownload> DownloadQueue { get; } = new ConcurrentQueue<IDownload>();
-		private List<IDownload> _downloads = new List<IDownload>();
+		private readonly List<IDownload> _downloads = new List<IDownload>();
 		
-		public DownloadManager(IHttpService httpService) {
-			HttpService = httpService;
+		public DownloadManager(IHttpService httpService, IStorage storage) {
+		    _storage = storage;
+		    HttpService = httpService;
 
 			NumberOfConcurrentDownloads = 4;
 			MaxRetryCount = 3;
 		}
 
-		public ReadOnlyObservableCollection<IDownload> Downloads { get; }
 		public int NumberOfConcurrentDownloads { get; set; }
 		public int MaxRetryCount { get; set; }
 		public IObservable<int> DownloadProgress => _progressSubject.AsObservable();
@@ -60,10 +59,6 @@ namespace Atomic.Core.Managers {
 		}
 
 		public void StartQueue() {
-			//if (_queueTask?.IsCompleted ?? true) {
-				
-			//	_queueTask = ProcessQueue();
-			//}
 			ProcessQueue();
 		}
 
@@ -87,7 +82,7 @@ namespace Atomic.Core.Managers {
 			Debug.WriteLine($"Download Start: {download.FileIdentifier}");
 			TaskCompletionSource<bool> taskCompletionSource = new TaskCompletionSource<bool>();
 
-			IObservable<double> downloadFileObservable = HttpService.DownloadFileAsync(download.Url, download.FileIdentifier);
+			IObservable<double> downloadFileObservable = HttpService.DownloadFileAsync(download.Url, download.FileIdentifier, _storage.GetOutputStream(download.FileIdentifier));
 
 			IDisposable disposable = downloadFileObservable.Subscribe(d => {
 				download.ProgressSubject.OnNext(d);
@@ -102,8 +97,8 @@ namespace Atomic.Core.Managers {
                     _downloadUpdateSubject.OnNext(download);
 
                     download.ProgressSubject.OnError(exception);
-					_progressSubject.OnNext(_downloads.Count);
-				} else {
+                    _progressSubject.OnNext(DownloadQueue.Count + CurrentDownloadDictionary.Count);
+                } else {
 					Debug.WriteLine($"Download Error Qeueu: {download.FileIdentifier}");
 
                     // Download failed so we add it to queue again
@@ -111,7 +106,10 @@ namespace Atomic.Core.Managers {
                     _downloadUpdateSubject.OnNext(download);
                     DownloadQueue.Enqueue(download);
 				}
-				_downloads.Remove(download);
+
+                Tuple<IDisposable, IDownload> compeltedDownload;
+                CurrentDownloadDictionary.TryRemove(download.Url, out compeltedDownload);
+                _downloads.Remove(download);
 				StartQueue();
 			}, () => {
 				Debug.WriteLine($"Download Complete: {download.FileIdentifier}");
@@ -122,8 +120,12 @@ namespace Atomic.Core.Managers {
                 taskCompletionSource.TrySetResult(true);
 
 				download.ProgressSubject.OnCompleted();
-				_progressSubject.OnNext(_downloads.Count);
-				StartQueue();
+
+			    Tuple<IDisposable, IDownload> compeltedDownload;
+			    CurrentDownloadDictionary.TryRemove(download.Url, out compeltedDownload);
+
+                _progressSubject.OnNext(DownloadQueue.Count + CurrentDownloadDictionary.Count);
+			    StartQueue();
 			});
 
 			if (!CurrentDownloadDictionary.TryAdd(download.Url, new Tuple<IDisposable, IDownload>(disposable, download))) {

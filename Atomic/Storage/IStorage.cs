@@ -5,7 +5,7 @@ namespace Atomic.Core.Storage
     public interface IStorage
     {
         string GetDocumentsPath();
-        Stream GetTransientOutputStream(string fileIdentifier);
+        Stream GetOutputStream(string fileIdentifier);
 
         Stream GetFileStream(string fileIdentifier);
     }

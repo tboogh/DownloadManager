@@ -12,7 +12,7 @@ HttpService has a constructor with an optional HttpClient so that it is possible
 The workhorse of the project. 
 
 
-#IDownloadManager
+##IDownloadManager
 ```C#
 int NumberOfConcurrentDownloads { get; set; }
 ```
@@ -41,7 +41,7 @@ IObservable<IDownload> DownloadUpdated { get; }
 ```
 Will be called when a download changes status
 
-#IDownload
+##IDownload
 ```C#
 IObservable<double> Progress { get; }
 ```

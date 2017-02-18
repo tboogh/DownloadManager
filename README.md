@@ -1,4 +1,4 @@
-# Atomic
+# DownloadManager
 
 Lightweight download manager that can be embedded in most .Net projects. It was created with the purpose of being used in Xamarin Apps to handle multiple downloads in an orderly fashion.
 
